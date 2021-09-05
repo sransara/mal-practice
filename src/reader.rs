@@ -1,6 +1,6 @@
-use std::{iter::Peekable, result::Result};
 use lazy_static::lazy_static;
 use regex::{CaptureMatches, Match, Regex};
+use std::{iter::Peekable, result::Result};
 
 use crate::types::MalType;
 
@@ -27,16 +27,16 @@ pub fn read_str(input: &str) -> Result<MalType, ReaderError> {
         .unwrap();
     }
     let reader = RE.captures_iter(input);
-    let peekable = reader.peekable();
-    read_form(peekable)
+    let mut peekable = reader.peekable();
+    read_form(&mut peekable)
 }
 
-fn read_form(mut reader: Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
+fn read_form(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     if let Some(captured) = reader.peek() {
         let matched = captured.get(1).unwrap();
         match matched.as_str() {
             "(" => read_list(reader),
-            "" =>  unimplemented!(),
+            "" => unimplemented!(),
             _ => unimplemented!(),
         }
     } else {
@@ -44,18 +44,19 @@ fn read_form(mut reader: Peekable<CaptureMatches>) -> Result<MalType, ReaderErro
     }
 }
 
-fn read_list(mut reader: Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
+fn read_list(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let mut collector = Vec::new();
     let _captured = reader.next().unwrap();
     while let Some(captured) = reader.peek() {
         let matched = captured.get(1).unwrap();
         match matched.as_str() {
             ")" => return Ok(MalType::List(collector)),
-            _ => if let Ok(item) = read_form(reader) {
-                collector.push(Box::new(item));
-            } else {
-
-            },
+            _ => {
+                if let Ok(item) = read_form(reader) {
+                    collector.push(Box::new(item));
+                } else {
+                }
+            }
         }
     }
     unimplemented!()
