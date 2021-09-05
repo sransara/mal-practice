@@ -1,6 +1,9 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod reader;
+mod types;
+
 fn read(editor: &mut Editor<()>) -> Result<String, ReadlineError> {
     editor.readline("> ")
 }
