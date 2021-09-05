@@ -3,17 +3,26 @@ use rustyline::Editor;
 
 mod reader;
 mod types;
+mod printer;
 
-fn read(editor: &mut Editor<()>) -> Result<String, ReadlineError> {
-    editor.readline("> ")
+#[derive(Debug)]
+enum ReadError {
+    Readline(ReadlineError),
+    Reader(reader::ReaderError),
 }
 
-fn eval(input: &str) -> &str {
+fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
+    let input = editor.readline("> ").map_err(|err| ReadError::Readline(err))?;
+    editor.add_history_entry(input.as_str());
+    reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
+}
+
+fn eval(input: types::MalType) -> types::MalType {
     return input;
 }
 
-fn print(input: &str) {
-    println!("{}", input)
+fn print(input: types::MalType) {
+    printer::pr_str(input)
 }
 
 fn repl(mut editor: Editor<()>) {
@@ -21,12 +30,15 @@ fn repl(mut editor: Editor<()>) {
         let readline = read(&mut editor);
         match readline {
             Ok(line) => {
-                editor.add_history_entry(line.as_str());
-                let output = eval(line.as_str());
+                let output = eval(line);
                 print(output);
+            }
+            Err(ReadError::Reader(err)) => {
+                println!("{:?}", err);
             },
-            Err(_) => {
-                break
+            Err(ReadError::Readline(err)) => {
+                println!("{:?}", err);
+                break;
             }
         }
     }
