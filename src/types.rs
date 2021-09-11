@@ -1,12 +1,16 @@
-#[derive(Debug)]
+use std::collections::HashMap;
+
+use crate::eval::EvalError;
+
+#[derive(Debug, Clone)]
 pub enum MalType {
     Nil,
-    True,
-    False,
-    Keyword(String),
+    Bool(bool),
     Symbol(String),
     String(String),
     Integer(usize),
-    List(Vec<Box<MalType>>),
+    List(Vec<MalType>),
+    Fn(String, fn(Vec<MalType>) -> Result<MalType, EvalError>),
 }
 
+pub type MalEnv = HashMap<String, MalType>;

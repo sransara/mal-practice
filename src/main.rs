@@ -4,6 +4,7 @@ use rustyline::Editor;
 mod reader;
 mod types;
 mod printer;
+mod eval;
 
 #[derive(Debug)]
 enum ReadError {
@@ -17,8 +18,8 @@ fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
     reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
 }
 
-fn eval(input: types::MalType) -> types::MalType {
-    return input;
+fn eval(input: types::MalType, envm: &mut types::MalEnv) -> Result<types::MalType, eval::EvalError> {
+    eval::eval(input, envm)
 }
 
 fn print(input: types::MalType) {
@@ -26,12 +27,16 @@ fn print(input: types::MalType) {
 }
 
 fn repl(mut editor: Editor<()>) {
+    let mut envm = eval::stdenv();
     loop {
         let readline = read(&mut editor);
         match readline {
             Ok(line) => {
-                let output = eval(line);
-                print(output);
+                let result = eval(line, &mut envm);
+                match result {
+                    Ok(result) => print(result),
+                    Err(err) => println!("{:?}", err),
+                }
             }
             Err(ReadError::Reader(err)) => {
                 println!("{:?}", err);

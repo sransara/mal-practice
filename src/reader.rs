@@ -45,20 +45,21 @@ fn read_form(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
 
 fn read_list(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let mut collector = Vec::new();
-    let starting = reader.next().unwrap().get(1).unwrap();
+    let list = reader.next().unwrap().get(1).unwrap();
+    let list_read_err = Err(ReaderError::Unbalanced("(", list.start()));
     while let Some(captured) = reader.peek() {
         let matched = captured.get(1).unwrap();
         if matched.as_str() == ")" {
+            let _ = reader.next();
             return Ok(MalType::List(collector));
-        } else {
-            if let Ok(item) = read_form(reader) {
-                collector.push(Box::new(item));
-            } else {
-                return Err(ReaderError::Unbalanced("(", starting.start()));
-            }
         }
+        match read_form(reader) {
+            Ok(item) => collector.push(item),
+            Err(ReaderError::EOL) | Err(ReaderError::Ignore) => return list_read_err,
+            err => return err,
+        };
     }
-    return Err(ReaderError::Unbalanced("(", starting.start()));
+    return list_read_err;
 }
 
 fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
@@ -68,8 +69,8 @@ fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
         static ref INTEGER: Regex = Regex::new(r#"^(\d+)$"#).unwrap();
     }
     match atom.as_str() {
-        "true" => Ok(MalType::True),
-        "false" => Ok(MalType::False),
+        "true" => Ok(MalType::Bool(true)),
+        "false" => Ok(MalType::Bool(false)),
         "nil" => Ok(MalType::Nil),
         text if text.starts_with('"') => {
             if let Some(captured) = STRING.captures(text) {
@@ -78,9 +79,8 @@ fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
             } else {
                 Err(ReaderError::Unbalanced("\"", atom.start()))
             }
-        }
-        text if text.starts_with(":") => Ok(MalType::Keyword(text.to_owned())),
+        },
         text if INTEGER.is_match(text) => Ok(MalType::Integer(text.parse().unwrap())),
-        text => Ok(MalType::Symbol(text.to_owned()))
+        text => Ok(MalType::Symbol(text.to_owned())),
     }
 }
