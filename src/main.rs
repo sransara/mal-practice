@@ -5,6 +5,7 @@ mod reader;
 mod types;
 mod printer;
 mod eval;
+mod envm;
 
 #[derive(Debug)]
 enum ReadError {
@@ -18,7 +19,7 @@ fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
     reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
 }
 
-fn eval(input: types::MalType, envm: &mut types::MalEnv) -> Result<types::MalType, eval::EvalError> {
+fn eval(input: types::MalType, envm: &mut envm::MalEnv) -> Result<types::MalType, eval::EvalError> {
     eval::eval(input, envm)
 }
 

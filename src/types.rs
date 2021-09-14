@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::eval::EvalError;
 
 #[derive(Debug, Clone)]
@@ -13,4 +11,3 @@ pub enum MalType {
     Fn(String, fn(Vec<MalType>) -> Result<MalType, EvalError>),
 }
 
-pub type MalEnv = HashMap<String, MalType>;
