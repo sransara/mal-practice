@@ -82,7 +82,6 @@ fn eval_letstar(items: &Vec<MalType>, envm: &mut MalEnv)  -> Result<MalType, Eva
     } else {
         return Err(EvalError::InvalidType("Symbol", items[1].clone()));
     }
-    
 }
 
 fn eval_ast(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError> {
