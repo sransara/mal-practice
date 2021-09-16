@@ -3,12 +3,12 @@ use crate::types::MalType;
 
 pub struct MalEnv<'a> {
     pub parent: Option<&'a MalEnv<'a>>,
-    pub env: HashMap<String, MalType>,
+    pub env: HashMap<String, MalType<'a>>,
 }
 
 impl<'a> MalEnv<'a> {
-    pub fn set(&mut self, key: &str, value: MalType) -> Option<MalType> {
-        self.env.insert(key.to_owned(), value)
+    pub fn set(&mut self, key: &str, value: MalType<'a>) {
+        self.env.insert(key.to_owned(), value);
     }
 
     fn find(&'a self, key: &str) -> Option<&MalEnv> {

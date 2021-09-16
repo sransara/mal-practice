@@ -1,13 +1,15 @@
-use crate::eval::EvalError;
+use crate::{envm::MalEnv, eval::EvalError};
 
 #[derive(Debug, Clone)]
-pub enum MalType {
+pub enum MalType<'a> {
     Nil,
     Bool(bool),
     Symbol(String),
     String(String),
     Integer(usize),
-    List(Vec<MalType>),
-    Fn(String, fn(Vec<MalType>) -> Result<MalType, EvalError>),
+    List(Vec<MalType<'a>>),
+    Fn {
+        params: Vec<MalType<'a>>,
+        function: fn(&'a mut MalEnv<'a>) -> Result<MalType<'a>, EvalError<'a>>,
+    },
 }
-
