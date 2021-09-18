@@ -23,6 +23,7 @@ pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {
                     "if" => return eval_if(list, envm),
                     "fn*" => return eval_fnstar(list),
                     "quote" => return eval_quote(list),
+                    "quasiquote" => return eval_quasiquote(list, envm),
                     _ => (),
                 }
             }
@@ -176,6 +177,53 @@ fn eval_quote(items: &[MalType]) -> Result<MalType, EvalError> {
         return Err(EvalError::LengthMismatch);
     }
     return Ok(items[1].clone());
+}
+
+fn eval_unquote(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
+    if items.len() != 2 {
+        return Err(EvalError::LengthMismatch);
+    }
+    eval(items[1].clone(), envm)
+}
+
+fn eval_quasiquote(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
+    if items.len() != 2 {
+        return Err(EvalError::LengthMismatch);
+    }
+    let ast = items[1].clone();
+    match ast {
+        MalType::List(list) => match &list[..] {
+            [MalType::Symbol(symbol), ..] if symbol == "unquote" => eval_unquote(&list, envm),
+            list => {
+                let mut result = vec![];
+                for elt in list {
+                    if let MalType::List(list) = elt {
+                        match &list[..] {
+                            [MalType::Symbol(symbol), ..] if symbol == "unquote" => {
+                                let unquoted = eval_unquote(&list, envm)?;
+                                result.push(unquoted);
+                            }
+                            [MalType::Symbol(symbol), ..] if symbol == "splice-unquote" => {
+                                let unquoted = eval_unquote(&list, envm)?;
+                                if let MalType::List(list) = unquoted {
+                                    for elt in list {
+                                        result.push(elt);
+                                    }
+                                } else {
+                                    return Err(EvalError::InvalidType("List", unquoted));
+                                }
+                            },
+                            _ => result.push(elt.clone()),
+                        }
+                    } else {
+                        result.push(elt.clone());
+                    }
+                }
+                Ok(MalType::List(result))
+            }
+        },
+        _ => Ok(ast),
+    }
 }
 
 fn eval_ast(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError> {
