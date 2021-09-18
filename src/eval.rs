@@ -8,6 +8,7 @@ pub enum EvalError {
     UndefinedSymbol(String),
     InvalidType(&'static str, MalType),
     LengthMismatch,
+    Throw(String),
 }
 
 pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {

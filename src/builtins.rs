@@ -45,5 +45,14 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
         return Ok(args);
     });
 
+    builtin!(envm, "throw", ["err"], |envm| {
+        let err = eval(MalType::Symbol("err".to_owned()), envm)?;
+        if let MalType::String(err) = err {
+            Err(EvalError::Throw(err))
+        } else {
+            Err(EvalError::InvalidType("String", err))
+        }
+    });
+
     return envm;
 }
