@@ -1,12 +1,12 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod builtins;
+mod envm;
+mod eval;
+mod printer;
 mod reader;
 mod types;
-mod printer;
-mod eval;
-mod envm;
-mod builtins;
 
 #[derive(Debug)]
 enum ReadError {
@@ -15,7 +15,9 @@ enum ReadError {
 }
 
 fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
-    let input = editor.readline("> ").map_err(|err| ReadError::Readline(err))?;
+    let input = editor
+        .readline("> ")
+        .map_err(|err| ReadError::Readline(err))?;
     editor.add_history_entry(input.as_str());
     reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
 }
@@ -42,7 +44,7 @@ fn repl(mut editor: Editor<()>) {
             }
             Err(ReadError::Reader(err)) => {
                 println!("{:?}", err);
-            },
+            }
             Err(ReadError::Readline(err)) => {
                 println!("{:?}", err);
                 break;

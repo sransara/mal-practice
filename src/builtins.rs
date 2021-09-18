@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::envm::MalEnv;
+use crate::eval::{eval, EvalError};
 use crate::types::{Function, MalType};
-use crate::eval::{EvalError, eval};
 
 pub fn stdenv<'a>() -> MalEnv<'a> {
     let mut envm: MalEnv = MalEnv {
@@ -11,10 +11,8 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
     };
     envm.set(
         "add",
-        MalType::Function(Function::Builtin{
-            params: vec![
-                MalType::Symbol("args...".to_owned()),
-            ],
+        MalType::Function(Function::Builtin {
+            params: vec![MalType::Symbol("args...".to_owned())],
             body: |envm| {
                 let args = eval(MalType::Symbol("args".to_owned()), envm)?;
                 if let MalType::List(args) = args {

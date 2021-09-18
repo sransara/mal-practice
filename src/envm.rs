@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::types::MalType;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MalEnv<'a> {
@@ -15,11 +15,9 @@ impl<'a> MalEnv<'a> {
     fn find(&'a self, key: &str) -> Option<&MalEnv> {
         if self.env.contains_key(key) {
             Some(&self)
-        }
-        else if self.parent.is_some() {
+        } else if self.parent.is_some() {
             self.parent.unwrap().find(key)
-        }
-        else {
+        } else {
             None
         }
     }

@@ -79,7 +79,7 @@ fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
             } else {
                 Err(ReaderError::Unbalanced("\"", atom.start()))
             }
-        },
+        }
         text if INTEGER.is_match(text) => Ok(MalType::Integer(text.parse().unwrap())),
         text => Ok(MalType::Symbol(text.to_owned())),
     }

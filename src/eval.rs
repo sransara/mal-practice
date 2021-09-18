@@ -33,7 +33,11 @@ pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {
     }
 }
 
-fn init_function_envm<'a>(params: &mut [MalType], args: &mut [MalType], envm: &'a mut MalEnv) -> Result<MalEnv<'a>, EvalError> {
+fn init_function_envm<'a>(
+    params: &mut [MalType],
+    args: &mut [MalType],
+    envm: &'a mut MalEnv,
+) -> Result<MalEnv<'a>, EvalError> {
     let mut params = params.iter();
     let mut args = args.iter();
     let mut nenvm = MalEnv {
@@ -44,15 +48,13 @@ fn init_function_envm<'a>(params: &mut [MalType], args: &mut [MalType], envm: &'
         if let MalType::Symbol(symbol) = param {
             if let Some(symbol) = symbol.strip_suffix("...") {
                 if let Some(_) = params.next() {
-                    return Err(EvalError::LengthMismatch); 
+                    return Err(EvalError::LengthMismatch);
                 }
                 let rest: Vec<_> = args.by_ref().map(|m| m.clone()).collect();
                 nenvm.set(symbol, MalType::List(rest));
-            }
-            else if let Some(value) = args.next() {
+            } else if let Some(value) = args.next() {
                 nenvm.set(symbol, value.clone());
-            }
-            else {
+            } else {
                 return Err(EvalError::LengthMismatch);
             }
         } else {
@@ -61,8 +63,7 @@ fn init_function_envm<'a>(params: &mut [MalType], args: &mut [MalType], envm: &'
     }
     if let Some(_) = args.next() {
         return Err(EvalError::LengthMismatch);
-    }
-    else {
+    } else {
         return Ok(nenvm);
     }
 }
@@ -70,16 +71,14 @@ fn eval_apply(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalErro
     let elist = eval_ast(input, envm)?;
     if let MalType::List(mut items) = elist {
         let func = items[0].clone();
-        
+
         if let MalType::Function(Function::UserDefined { mut params, body }) = func {
             let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
             return eval(*body, &mut nenvm);
-        } 
-        else if let MalType::Function(Function::Builtin { mut params, body }) = func {
+        } else if let MalType::Function(Function::Builtin { mut params, body }) = func {
             let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
             return body(&mut nenvm);
-        }
-        else {
+        } else {
             return Err(EvalError::NotFunction(func));
         }
     } else {
@@ -149,15 +148,12 @@ fn eval_if(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
     if let MalType::Bool(condition) = condition {
         if condition {
             return eval(items[2].clone(), envm);
-        }
-        else if items.len() == 4 {
+        } else if items.len() == 4 {
             return eval(items[3].clone(), envm);
-        }
-        else {
+        } else {
             return Ok(MalType::Nil);
         }
-    }
-    else {
+    } else {
         return Err(EvalError::InvalidType("Bool", condition.clone()));
     }
 }
