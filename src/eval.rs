@@ -4,17 +4,14 @@ use crate::envm::MalEnv;
 use crate::types::MalType;
 
 #[derive(Debug)]
-pub enum EvalError<'a> {
+pub enum EvalError {
     UndefinedSymbol(String),
-    NotFunction(MalType<'a>),
-    InvalidType(&'static str, MalType<'a>),
-    LengthMismatch(usize, usize),
+    NotFunction(MalType),
+    InvalidType(&'static str, MalType),
+    LengthMismatch,
 }
 
-pub fn eval<'a>(
-    input: MalType<'a>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {
     match &input {
         MalType::List(list) if list.is_empty() => Ok(input),
         MalType::List(list) => {
@@ -24,7 +21,7 @@ pub fn eval<'a>(
                     "def!" => return eval_defbang(list, envm),
                     "let*" => return eval_letstar(list, envm),
                     "do" => return eval_do(list, envm),
-                    "fn*" => return eval_fnstar(list, envm),
+                    "fn*" => return eval_fnstar(list),
                     _ => (),
                 }
             }
@@ -34,30 +31,63 @@ pub fn eval<'a>(
     }
 }
 
-fn eval_apply<'a>(
-    input: MalType<'a>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
-    let elist = eval_ast(input, envm)?;
-    if let MalType::List(items) = &elist {
-        let func = &items[0];
-        if let MalType::Fn { params, function } = func {
-            let args = items[1..].to_vec();
-            return function(envm);
+fn init_function_envm<'a>(params: &mut [MalType], args: &mut [MalType], envm: &'a mut MalEnv) -> Result<MalEnv<'a>, EvalError> {
+    let mut params = params.iter();
+    let mut args = args.iter();
+    let mut nenvm = MalEnv {
+        parent: Some(envm),
+        env: HashMap::new(),
+    };
+    while let Some(param) = params.next() {
+        if let MalType::Symbol(symbol) = param {
+            if let Some(symbol) = symbol.strip_suffix("...") {
+                if let Some(_) = params.next() {
+                    return Err(EvalError::LengthMismatch); 
+                }
+                let rest: Vec<_> = args.by_ref().map(|m| m.clone()).collect();
+                nenvm.set(symbol, MalType::List(rest));
+            }
+            else if let Some(value) = args.next() {
+                nenvm.set(symbol, value.clone());
+            }
+            else {
+                return Err(EvalError::LengthMismatch);
+            }
         } else {
-            return Err(EvalError::NotFunction(func.clone()));
+            return Err(EvalError::InvalidType("Symbol", param.clone()));
+        }
+    }
+    if let Some(_) = args.next() {
+        return Err(EvalError::LengthMismatch);
+    }
+    else {
+        return Ok(nenvm);
+    }
+}
+fn eval_apply(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError> {
+    let elist = eval_ast(input, envm)?;
+    if let MalType::List(mut items) = elist {
+        let func = items[0].clone();
+        
+        if let MalType::Function { mut params, body } = func {
+            let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
+            return eval(*body, &mut nenvm);
+        } 
+        else if let MalType::BuiltinFunction { mut params, body } = func {
+            let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
+            return body(&mut nenvm);
+        }
+        else {
+            return Err(EvalError::NotFunction(func));
         }
     } else {
         unreachable!()
     }
 }
 
-fn eval_defbang<'a>(
-    items: &'a Vec<MalType<'a>>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+fn eval_defbang(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
     if items.len() != 3 {
-        return Err(EvalError::LengthMismatch(3, items.len()));
+        return Err(EvalError::LengthMismatch);
     }
     if let MalType::Symbol(symbol) = &items[1] {
         let value = eval(items[2].clone(), envm)?;
@@ -68,12 +98,9 @@ fn eval_defbang<'a>(
     }
 }
 
-fn eval_letstar<'a>(
-    items: &'a Vec<MalType<'a>>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+fn eval_letstar(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
     if items.len() != 3 {
-        return Err(EvalError::LengthMismatch(3, items.len()));
+        return Err(EvalError::LengthMismatch);
     }
     let mut nenvm = MalEnv {
         parent: Some(envm),
@@ -102,10 +129,7 @@ fn eval_letstar<'a>(
     }
 }
 
-fn eval_do<'a>(
-    items: &'a Vec<MalType<'a>>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+fn eval_do(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
     let mut stmts = items.iter();
     let _ = stmts.next(); // "do"
     let mut last_val = MalType::Nil;
@@ -114,35 +138,29 @@ fn eval_do<'a>(
     }
     return Ok(last_val);
 }
-fn eval_fnstar<'a>(
-    items: &'a Vec<MalType<'a>>,
-    envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+
+fn eval_fnstar(items: &[MalType]) -> Result<MalType, EvalError> {
     if items.len() != 3 {
-        return Err(EvalError::LengthMismatch(3, items.len()));
+        return Err(EvalError::LengthMismatch);
     }
     if let MalType::List(params) = &items[1] {
-        let a = |envm| {
-            eval(items[2].clone(), envm)
-        };
-        unimplemented!()
-        // return Ok(MalType::Fn {params, function: );
+        return Ok(MalType::Function {
+            params: params.clone(),
+            body: Box::new(items[2].clone()),
+        });
     } else {
         return Err(EvalError::InvalidType("Symbol", items[1].clone()));
     }
 }
 
-fn eval_ast<'a>(
-    input: MalType<'a>,
-    mut envm: &'a mut MalEnv<'a>,
-) -> Result<MalType<'a>, EvalError<'a>> {
+fn eval_ast(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError> {
     match input {
         MalType::Symbol(symbol) => match envm.get(&symbol) {
             Some(result) => Ok(result.clone()),
             None => Err(EvalError::UndefinedSymbol(symbol)),
         },
         MalType::List(list) => {
-            let result = Vec::new();
+            let mut result = Vec::new();
             for item in list {
                 let value = eval(item.clone(), &mut envm)?;
                 result.push(value);
@@ -154,18 +172,17 @@ fn eval_ast<'a>(
 }
 
 pub fn stdenv<'a>() -> MalEnv<'a> {
-    let mut envm: MalEnv<'a> = MalEnv {
+    let mut envm: MalEnv = MalEnv {
         parent: None,
         env: HashMap::new(),
     };
     envm.set(
         "add",
-        MalType::Fn {
+        MalType::BuiltinFunction {
             params: vec![
-                MalType::Symbol("args".to_owned()),
-                MalType::Symbol("...".to_owned()),
+                MalType::Symbol("args...".to_owned()),
             ],
-            function: |envm| {
+            body: |envm| {
                 let args = eval_ast(MalType::Symbol("args".to_owned()), envm)?;
                 if let MalType::List(args) = args {
                     let result = args.iter().try_fold(0, |acc, x| {

@@ -19,7 +19,7 @@ fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
     reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
 }
 
-fn eval<'a>(input: types::MalType<'a>, envm: &'a mut envm::MalEnv<'a>) -> Result<types::MalType<'a>, eval::EvalError<'a>> {
+fn eval(input: types::MalType, envm: &mut envm::MalEnv) -> Result<types::MalType, eval::EvalError> {
     eval::eval(input, envm)
 }
 

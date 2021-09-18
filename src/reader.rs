@@ -32,7 +32,7 @@ pub fn read_str(input: &str) -> Result<MalType, ReaderError> {
     read_form(&mut peekable)
 }
 
-fn read_form<'a>(reader: &'a mut Peekable<CaptureMatches>) -> Result<MalType<'a>, ReaderError> {
+fn read_form(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let captured = reader.peek().unwrap();
     let matched = captured.get(1).unwrap();
     match matched.as_str() {
@@ -43,7 +43,7 @@ fn read_form<'a>(reader: &'a mut Peekable<CaptureMatches>) -> Result<MalType<'a>
     }
 }
 
-fn read_list<'a>(reader: &'a mut Peekable<CaptureMatches>) -> Result<MalType<'a>, ReaderError> {
+fn read_list(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let mut collector = Vec::new();
     let list = reader.next().unwrap().get(1).unwrap();
     let list_read_err = Err(ReaderError::Unbalanced("(", list.start()));
@@ -62,7 +62,7 @@ fn read_list<'a>(reader: &'a mut Peekable<CaptureMatches>) -> Result<MalType<'a>
     return list_read_err;
 }
 
-fn read_atom<'a>(reader: &'a mut Peekable<CaptureMatches>) -> Result<MalType<'a>, ReaderError> {
+fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let atom = reader.next().unwrap().get(1).unwrap();
     lazy_static! {
         static ref STRING: Regex = Regex::new(r#"^"((?:\\.|[^\\"])*)"$"#).unwrap();

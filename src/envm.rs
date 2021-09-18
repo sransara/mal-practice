@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use crate::types::MalType;
 
+#[derive(Debug)]
 pub struct MalEnv<'a> {
     pub parent: Option<&'a MalEnv<'a>>,
-    pub env: HashMap<String, MalType<'a>>,
+    pub env: HashMap<String, MalType>,
 }
 
 impl<'a> MalEnv<'a> {
-    pub fn set(&mut self, key: &str, value: MalType<'a>) {
+    pub fn set(&mut self, key: &str, value: MalType) {
         self.env.insert(key.to_owned(), value);
     }
 
