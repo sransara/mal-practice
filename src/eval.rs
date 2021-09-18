@@ -6,7 +6,6 @@ use crate::types::{Function, MalType};
 #[derive(Debug)]
 pub enum EvalError {
     UndefinedSymbol(String),
-    NotFunction(MalType),
     InvalidType(&'static str, MalType),
     LengthMismatch,
 }
@@ -79,7 +78,7 @@ fn eval_apply(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalErro
             let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
             return body(&mut nenvm);
         } else {
-            return Err(EvalError::NotFunction(func));
+            return Err(EvalError::InvalidType("Function", func));
         }
     } else {
         unreachable!()
