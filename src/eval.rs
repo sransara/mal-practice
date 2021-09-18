@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::envm::MalEnv;
-use crate::types::MalType;
+use crate::types::{Function, MalType};
 
 #[derive(Debug)]
 pub enum EvalError {
@@ -70,11 +70,11 @@ fn eval_apply(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalErro
     if let MalType::List(mut items) = elist {
         let func = items[0].clone();
         
-        if let MalType::Function { mut params, body } = func {
+        if let MalType::Function(Function::UserDefined { mut params, body }) = func {
             let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
             return eval(*body, &mut nenvm);
         } 
-        else if let MalType::BuiltinFunction { mut params, body } = func {
+        else if let MalType::Function(Function::Builtin { mut params, body }) = func {
             let mut nenvm = init_function_envm(&mut params, &mut items[1..], &mut envm)?;
             return body(&mut nenvm);
         }
@@ -166,10 +166,10 @@ fn eval_fnstar(items: &[MalType]) -> Result<MalType, EvalError> {
         return Err(EvalError::LengthMismatch);
     }
     if let MalType::List(params) = &items[1] {
-        return Ok(MalType::Function {
+        return Ok(MalType::Function(Function::UserDefined {
             params: params.clone(),
             body: Box::new(items[2].clone()),
-        });
+        }));
     } else {
         return Err(EvalError::InvalidType("Symbol", items[1].clone()));
     }
@@ -200,7 +200,7 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
     };
     envm.set(
         "add",
-        MalType::BuiltinFunction {
+        MalType::Function(Function::Builtin{
             params: vec![
                 MalType::Symbol("args...".to_owned()),
             ],
@@ -219,7 +219,7 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
                     Err(EvalError::InvalidType("List", args))
                 }
             },
-        },
+        }),
     );
     return envm;
 }
