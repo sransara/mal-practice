@@ -22,6 +22,7 @@ pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {
                     "let*" => return eval_letstar(list, envm),
                     "do" => return eval_do(list, envm),
                     "fn*" => return eval_fnstar(list),
+                    "if" => return eval_if(list, envm),
                     _ => (),
                 }
             }
@@ -137,6 +138,27 @@ fn eval_do(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
         last_val = eval_ast(stmt.clone(), envm)?;
     }
     return Ok(last_val);
+}
+
+fn eval_if(items: &[MalType], envm: &mut MalEnv) -> Result<MalType, EvalError> {
+    if items.len() < 3 || items.len() > 4 {
+        return Err(EvalError::LengthMismatch);
+    }
+    let condition = eval(items[1].clone(), envm)?;
+    if let MalType::Bool(condition) = condition {
+        if condition {
+            return eval(items[2].clone(), envm);
+        }
+        else if items.len() == 4 {
+            return eval(items[3].clone(), envm);
+        }
+        else {
+            return Ok(MalType::Nil);
+        }
+    }
+    else {
+        return Err(EvalError::InvalidType("Bool", condition.clone()));
+    }
 }
 
 fn eval_fnstar(items: &[MalType]) -> Result<MalType, EvalError> {
