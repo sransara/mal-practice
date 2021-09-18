@@ -6,6 +6,7 @@ mod types;
 mod printer;
 mod eval;
 mod envm;
+mod builtins;
 
 #[derive(Debug)]
 enum ReadError {
@@ -28,7 +29,7 @@ fn print(input: types::MalType) {
 }
 
 fn repl(mut editor: Editor<()>) {
-    let mut envm = eval::stdenv();
+    let mut envm = builtins::stdenv();
     loop {
         let readline = read(&mut editor);
         match readline {

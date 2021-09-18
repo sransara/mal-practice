@@ -21,8 +21,9 @@ pub fn eval(input: MalType, envm: &mut MalEnv) -> Result<MalType, EvalError> {
                     "def!" => return eval_defbang(list, envm),
                     "let*" => return eval_letstar(list, envm),
                     "do" => return eval_do(list, envm),
-                    "fn*" => return eval_fnstar(list),
                     "if" => return eval_if(list, envm),
+                    "fn*" => return eval_fnstar(list),
+                    "quote" => return eval_quote(list),
                     _ => (),
                 }
             }
@@ -175,6 +176,13 @@ fn eval_fnstar(items: &[MalType]) -> Result<MalType, EvalError> {
     }
 }
 
+fn eval_quote(items: &[MalType]) -> Result<MalType, EvalError> {
+    if items.len() != 2 {
+        return Err(EvalError::LengthMismatch);
+    }
+    return Ok(items[1].clone());
+}
+
 fn eval_ast(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError> {
     match input {
         MalType::Symbol(symbol) => match envm.get(&symbol) {
@@ -191,35 +199,4 @@ fn eval_ast(input: MalType, mut envm: &mut MalEnv) -> Result<MalType, EvalError>
         }
         x => Ok(x),
     }
-}
-
-pub fn stdenv<'a>() -> MalEnv<'a> {
-    let mut envm: MalEnv = MalEnv {
-        parent: None,
-        env: HashMap::new(),
-    };
-    envm.set(
-        "add",
-        MalType::Function(Function::Builtin{
-            params: vec![
-                MalType::Symbol("args...".to_owned()),
-            ],
-            body: |envm| {
-                let args = eval_ast(MalType::Symbol("args".to_owned()), envm)?;
-                if let MalType::List(args) = args {
-                    let result = args.iter().try_fold(0, |acc, x| {
-                        if let MalType::Integer(x) = x {
-                            Ok(x + acc)
-                        } else {
-                            Err(EvalError::InvalidType("Integer", x.clone()))
-                        }
-                    })?;
-                    Ok(MalType::Integer(result))
-                } else {
-                    Err(EvalError::InvalidType("List", args))
-                }
-            },
-        }),
-    );
-    return envm;
 }
