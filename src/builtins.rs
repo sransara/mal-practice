@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
-use crate::envm::MalEnv;
+use crate::menv::MalEnv;
 use crate::eval::{eval, EvalError};
 use crate::types::{Function, MalType};
 
 macro_rules! builtin {
-    ($envm:ident, $name:expr, [ $( $params:expr),* ], $func:expr) => {
-        $envm.set(
+    ($menv:ident, $name:expr, [ $( $params:expr),* ], $func:expr) => {
+        $menv.set(
             $name,
             MalType::Function(Function::Builtin {
                 params: vec![$( $params )*]
@@ -20,12 +18,10 @@ macro_rules! builtin {
 }
 
 pub fn stdenv<'a>() -> MalEnv<'a> {
-    let mut envm: MalEnv = MalEnv {
-        parent: None,
-        env: HashMap::new(),
-    };
-    builtin!(envm, "add", ["args..."], |envm| { 
-        let args = eval(MalType::Symbol("args".to_owned()), envm)?;
+    let mut menv: MalEnv = MalEnv::init(None);
+
+    builtin!(menv, "add", ["args..."], |menv| { 
+        let args = eval(MalType::Symbol("args".to_owned()), menv)?;
         if let MalType::List(args) = args {
             let result = args.iter().try_fold(0, |acc, x| {
                 if let MalType::Integer(x) = x {
@@ -40,13 +36,13 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
         }
     });
 
-    builtin!(envm, "list", ["args..."], |envm| {
-        let args = eval(MalType::Symbol("args".to_owned()), envm)?;
+    builtin!(menv, "list", ["args..."], |menv| {
+        let args = eval(MalType::Symbol("args".to_owned()), menv)?;
         return Ok(args);
     });
 
-    builtin!(envm, "throw", ["err"], |envm| {
-        let err = eval(MalType::Symbol("err".to_owned()), envm)?;
+    builtin!(menv, "throw", ["err"], |menv| {
+        let err = eval(MalType::Symbol("err".to_owned()), menv)?;
         if let MalType::String(err) = err {
             Err(EvalError::Throw(err))
         } else {
@@ -54,5 +50,5 @@ pub fn stdenv<'a>() -> MalEnv<'a> {
         }
     });
 
-    return envm;
+    return menv;
 }

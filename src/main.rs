@@ -2,7 +2,7 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod builtins;
-mod envm;
+mod menv;
 mod eval;
 mod printer;
 mod reader;
@@ -22,8 +22,8 @@ fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
     reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
 }
 
-fn eval(input: types::MalType, envm: &mut envm::MalEnv) -> Result<types::MalType, eval::EvalError> {
-    eval::eval(input, envm)
+fn eval(input: types::MalType, menv: &mut menv::MalEnv) -> Result<types::MalType, eval::EvalError> {
+    eval::eval(input, menv)
 }
 
 fn print(input: types::MalType) {
@@ -31,12 +31,12 @@ fn print(input: types::MalType) {
 }
 
 fn repl(mut editor: Editor<()>) {
-    let mut envm = builtins::stdenv();
+    let mut menv = builtins::stdenv();
     loop {
         let readline = read(&mut editor);
         match readline {
             Ok(line) => {
-                let result = eval(line, &mut envm);
+                let result = eval(line, &mut menv);
                 match result {
                     Ok(result) => print(result),
                     Err(err) => println!("{:?}", err),

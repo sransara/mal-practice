@@ -1,4 +1,4 @@
-use crate::{envm::MalEnv, eval::EvalError};
+use crate::{eval::EvalError, menv::MalEnv};
 
 #[derive(Clone)]
 pub enum Function {
@@ -10,6 +10,10 @@ pub enum Function {
         params: Vec<MalType>,
         body: Box<MalType>,
     },
+    Macro {
+        params: Vec<MalType>,
+        body: Box<MalType>,
+    }
 }
 
 impl std::fmt::Debug for Function {
@@ -22,6 +26,11 @@ impl std::fmt::Debug for Function {
                 .finish(),
             Self::UserDefined { params, body } => f
                 .debug_struct("UserDefined")
+                .field("params", params)
+                .field("body", body)
+                .finish(),
+            Self::Macro { params, body } => f
+                .debug_struct("Macro")
                 .field("params", params)
                 .field("body", body)
                 .finish(),

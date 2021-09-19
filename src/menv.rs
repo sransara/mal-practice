@@ -3,17 +3,24 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MalEnv<'a> {
-    pub parent: Option<&'a MalEnv<'a>>,
-    pub env: HashMap<String, MalType>,
+    parent: Option<&'a MalEnv<'a>>,
+    symbol_table: HashMap<String, MalType>,
 }
 
 impl<'a> MalEnv<'a> {
+    pub fn init(parent: Option<&'a MalEnv<'a>>) -> MalEnv {
+        return MalEnv {
+            parent,
+            symbol_table: HashMap::new(),
+        }
+    }
+
     pub fn set(&mut self, key: &str, value: MalType) {
-        self.env.insert(key.to_owned(), value);
+        self.symbol_table.insert(key.to_owned(), value);
     }
 
     fn find(&'a self, key: &str) -> Option<&MalEnv> {
-        if self.env.contains_key(key) {
+        if self.symbol_table.contains_key(key) {
             Some(&self)
         } else if self.parent.is_some() {
             self.parent.unwrap().find(key)
@@ -23,8 +30,8 @@ impl<'a> MalEnv<'a> {
     }
 
     pub fn get(&'a self, key: &str) -> Option<MalType> {
-        let envm = self.find(key)?;
-        let value = envm.env.get(key)?;
+        let menv = self.find(key)?;
+        let value = menv.symbol_table.get(key)?;
         return Some(value.clone());
     }
 }
