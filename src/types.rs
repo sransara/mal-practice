@@ -13,7 +13,7 @@ pub enum Function {
     Macro {
         params: Vec<MalType>,
         body: Box<MalType>,
-    }
+    },
 }
 
 impl std::fmt::Debug for Function {

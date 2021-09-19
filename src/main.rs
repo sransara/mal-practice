@@ -2,8 +2,8 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod builtins;
-mod menv;
 mod eval;
+mod menv;
 mod printer;
 mod reader;
 mod types;

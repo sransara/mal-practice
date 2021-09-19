@@ -69,20 +69,16 @@ fn init_function_menv<'a>(
 fn eval_macroexpand(input: MalType, mut menv: &mut MalEnv) -> Result<MalType, EvalError> {
     match &input {
         MalType::List(items) if items.is_empty() => Ok(input),
-        MalType::List(items)=> {
-            match &items[0] {
-                MalType::Symbol(symbol) => {
-                    match menv.get(symbol) {
-                        Some(MalType::Function(Function::Macro { mut params, body })) => {
-                            let mut nmenv = init_function_menv(&mut params, &items[1..], &mut menv)?;
-                            eval_macroexpand(eval(*body, &mut nmenv)?, &mut nmenv)
-                        },
-                        _ => Ok(input)
-                    }
-                },
+        MalType::List(items) => match &items[0] {
+            MalType::Symbol(symbol) => match menv.get(symbol) {
+                Some(MalType::Function(Function::Macro { mut params, body })) => {
+                    let mut nmenv = init_function_menv(&mut params, &items[1..], &mut menv)?;
+                    eval_macroexpand(eval(*body, &mut nmenv)?, &mut nmenv)
+                }
                 _ => Ok(input),
-            }
-        }
+            },
+            _ => Ok(input),
+        },
         _ => Ok(input),
     }
 }
@@ -224,35 +220,35 @@ fn eval_quasiquote(items: &[MalType], menv: &mut MalEnv) -> Result<MalType, Eval
     let ast = items[1].clone();
     if let MalType::List(list) = ast {
         match &list[..] {
-        [MalType::Symbol(symbol), ..] if symbol == "unquote" => eval_unquote(&list, menv),
-        list => {
-            let mut result = vec![];
-            for elt in list {
-                if let MalType::List(list) = elt {
-                    match &list[..] {
-                        [MalType::Symbol(symbol), ..] if symbol == "unquote" => {
-                            let unquoted = eval_unquote(&list, menv)?;
-                            result.push(unquoted);
-                        }
-                        [MalType::Symbol(symbol), ..] if symbol == "splice-unquote" => {
-                            let unquoted = eval_unquote(&list, menv)?;
-                            if let MalType::List(list) = unquoted {
-                                for elt in list {
-                                    result.push(elt);
-                                }
-                            } else {
-                                return Err(EvalError::InvalidType("List", unquoted));
+            [MalType::Symbol(symbol), ..] if symbol == "unquote" => eval_unquote(&list, menv),
+            list => {
+                let mut result = vec![];
+                for elt in list {
+                    if let MalType::List(list) = elt {
+                        match &list[..] {
+                            [MalType::Symbol(symbol), ..] if symbol == "unquote" => {
+                                let unquoted = eval_unquote(&list, menv)?;
+                                result.push(unquoted);
                             }
-                        },
-                        _ => result.push(elt.clone()),
+                            [MalType::Symbol(symbol), ..] if symbol == "splice-unquote" => {
+                                let unquoted = eval_unquote(&list, menv)?;
+                                if let MalType::List(list) = unquoted {
+                                    for elt in list {
+                                        result.push(elt);
+                                    }
+                                } else {
+                                    return Err(EvalError::InvalidType("List", unquoted));
+                                }
+                            }
+                            _ => result.push(elt.clone()),
+                        }
+                    } else {
+                        result.push(elt.clone());
                     }
-                } else {
-                    result.push(elt.clone());
                 }
+                Ok(MalType::List(result))
             }
-            Ok(MalType::List(result))
         }
-    }
     } else {
         Ok(ast)
     }

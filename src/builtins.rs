@@ -1,5 +1,5 @@
-use crate::menv::MalEnv;
 use crate::eval::{eval, EvalError};
+use crate::menv::MalEnv;
 use crate::types::{Function, MalType};
 
 macro_rules! builtin {
@@ -20,7 +20,7 @@ macro_rules! builtin {
 pub fn stdenv<'a>() -> MalEnv<'a> {
     let mut menv: MalEnv = MalEnv::init(None);
 
-    builtin!(menv, "add", ["args..."], |menv| { 
+    builtin!(menv, "add", ["args..."], |menv| {
         let args = eval(MalType::Symbol("args".to_owned()), menv)?;
         if let MalType::List(args) = args {
             let result = args.iter().try_fold(0, |acc, x| {

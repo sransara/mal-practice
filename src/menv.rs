@@ -1,5 +1,6 @@
-use crate::types::MalType;
 use std::collections::HashMap;
+
+use crate::types::MalType;
 
 #[derive(Debug)]
 pub struct MalEnv<'a> {
@@ -12,7 +13,7 @@ impl<'a> MalEnv<'a> {
         return MalEnv {
             parent,
             symbol_table: HashMap::new(),
-        }
+        };
     }
 
     pub fn set(&mut self, key: &str, value: MalType) {
