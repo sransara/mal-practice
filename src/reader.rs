@@ -6,21 +6,20 @@ use crate::types::MalType;
 
 #[derive(Debug, Clone)]
 pub enum ReaderError {
-    EOL,
-    Ignore,
-    Unbalanced(&'static str, usize),
+    EOF,
+    Unbalanced(&'static str),
 }
 
 pub fn read_str(input: &str) -> Result<MalType, ReaderError> {
     lazy_static! {
         static ref RE: Regex = Regex::new(
-            r#"(?x)
+            r#"(?xm)
             [\s,]*
             (
                 ~@ |
                 [\[\]{}()'`~^@] |
                 "(?:\\.|[^\\"])*"? |
-                ;.* |
+                ;.*?$ |
                 [^\s\[\]{}('"`,;)]*
             )
             "#
@@ -33,20 +32,23 @@ pub fn read_str(input: &str) -> Result<MalType, ReaderError> {
 }
 
 fn read_form(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
-    let captured = reader.peek().unwrap();
+    let captured = reader.peek().ok_or(ReaderError::EOF)?;
     let matched = captured.get(1).unwrap();
     match matched.as_str() {
         "(" => read_list(reader),
-        "" => Err(ReaderError::EOL),
-        text if text.starts_with(";") => Err(ReaderError::Ignore),
+        "" => Err(ReaderError::EOF),
+        text if text.starts_with(";") => {
+            reader.next();
+            read_form(reader)
+        }
         _ => read_atom(reader),
     }
 }
 
 fn read_list(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderError> {
     let mut collector = Vec::new();
-    let list = reader.next().unwrap().get(1).unwrap();
-    let list_read_err = Err(ReaderError::Unbalanced("(", list.start()));
+    let _ = reader.next();
+    let list_read_err = Err(ReaderError::Unbalanced("("));
     while let Some(captured) = reader.peek() {
         let matched = captured.get(1).unwrap();
         if matched.as_str() == ")" {
@@ -55,7 +57,7 @@ fn read_list(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
         }
         match read_form(reader) {
             Ok(item) => collector.push(item),
-            Err(ReaderError::EOL) | Err(ReaderError::Ignore) => return list_read_err,
+            Err(ReaderError::EOF) => return list_read_err,
             err => return err,
         };
     }
@@ -77,7 +79,7 @@ fn read_atom(reader: &mut Peekable<CaptureMatches>) -> Result<MalType, ReaderErr
                 let text = captured.get(1).unwrap().as_str().to_owned();
                 Ok(MalType::String(text))
             } else {
-                Err(ReaderError::Unbalanced("\"", atom.start()))
+                Err(ReaderError::Unbalanced("\""))
             }
         }
         text if INTEGER.is_match(text) => Ok(MalType::Integer(text.parse().unwrap())),

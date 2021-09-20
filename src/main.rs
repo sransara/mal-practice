@@ -15,11 +15,26 @@ enum ReadError {
 }
 
 fn read(editor: &mut Editor<()>) -> Result<types::MalType, ReadError> {
-    let input = editor
-        .readline("> ")
-        .map_err(|err| ReadError::Readline(err))?;
-    editor.add_history_entry(input.as_str());
-    reader::read_str(input.as_str()).map_err(|err| ReadError::Reader(err))
+    let mut acc = String::new();
+    let mut loopback;
+    let mut prompt = ">>> ";
+    loop {
+        match editor.readline(prompt) {
+            Ok(input) => {
+                editor.add_history_entry(input.as_str());
+                acc.push_str(&input);
+                acc.push_str("\n");
+                loopback = true;
+            }
+            Err(ReadlineError::Eof) if !acc.is_empty() => loopback = false,
+            Err(err) => return Err(ReadError::Readline(err)),
+        }
+        match reader::read_str(acc.as_str()) {
+            Err(reader::ReaderError::Unbalanced(_)) if loopback => prompt = "... ", // loop back
+            Err(err) => return Err(ReadError::Reader(err)),
+            Ok(x) => return Ok(x),
+        }
+    }
 }
 
 fn eval(input: types::MalType, menv: &mut menv::MalEnv) -> Result<types::MalType, eval::EvalError> {
@@ -44,6 +59,9 @@ fn repl(mut editor: Editor<()>) {
             }
             Err(ReadError::Reader(err)) => {
                 println!("{:?}", err);
+            }
+            Err(ReadError::Readline(ReadlineError::Eof)) => {
+                break;
             }
             Err(ReadError::Readline(err)) => {
                 println!("{:?}", err);
