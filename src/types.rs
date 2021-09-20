@@ -2,11 +2,11 @@ use crate::{eval::EvalError, menv::MalEnv};
 
 #[derive(Clone)]
 pub enum Function {
-    Builtin {
+    Native {
         params: Vec<MalType>,
         body: fn(&mut MalEnv) -> Result<MalType, EvalError>,
     },
-    UserDefined {
+    User {
         params: Vec<MalType>,
         body: Box<MalType>,
     },
@@ -19,13 +19,13 @@ pub enum Function {
 impl std::fmt::Debug for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Builtin { params, .. } => f
-                .debug_struct("Builtin")
+            Self::Native { params, .. } => f
+                .debug_struct("Native")
                 .field("params", params)
-                .field("body", &"<builtin>")
+                .field("body", &"<native>")
                 .finish(),
-            Self::UserDefined { params, body } => f
-                .debug_struct("UserDefined")
+            Self::User { params, body } => f
+                .debug_struct("User")
                 .field("params", params)
                 .field("body", body)
                 .finish(),

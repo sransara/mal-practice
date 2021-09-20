@@ -6,7 +6,7 @@ macro_rules! builtin {
     ($menv:ident, $name:expr, [ $( $params:expr),* ], $func:expr) => {
         $menv.set(
             $name,
-            MalType::Function(Function::Builtin {
+            MalType::Function(Function::Native {
                 params: vec![$( $params )*]
                     .iter()
                     .map(|p: &&str| MalType::Symbol((*p).to_owned()))

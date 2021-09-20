@@ -87,10 +87,10 @@ fn eval_apply(input: MalType, mut menv: &mut MalEnv) -> Result<MalType, EvalErro
     let elist = eval_ast(input, menv)?;
     if let MalType::List(items) = elist {
         let func = items[0].clone();
-        if let MalType::Function(Function::UserDefined { params, body }) = func {
+        if let MalType::Function(Function::User { params, body }) = func {
             let mut nmenv = init_function_menv(&params, &items[1..], &mut menv)?;
             return eval(*body, &mut nmenv);
-        } else if let MalType::Function(Function::Builtin { params, body }) = func {
+        } else if let MalType::Function(Function::Native { params, body }) = func {
             let mut nmenv = init_function_menv(&params, &items[1..], &mut menv)?;
             return body(&mut nmenv);
         } else {
@@ -176,7 +176,7 @@ fn eval_fnstar(items: &[MalType], _menv: &mut MalEnv) -> Result<MalType, EvalErr
         return Err(EvalError::LengthMismatch);
     }
     if let MalType::List(params) = &items[1] {
-        return Ok(MalType::Function(Function::UserDefined {
+        return Ok(MalType::Function(Function::User {
             params: params.clone(),
             body: Box::new(items[2].clone()),
         }));
