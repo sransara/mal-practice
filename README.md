@@ -9,7 +9,7 @@ My attempt of https://github.com/kanaka/mal/
 - [x] `pr_str` support
 - [x] `if`, `fn*`, `do` support
 - Rust macro to support builtins in ./src/builtins.rs
-- [x] `add`, `list`, `throw` builtins
+- [x] `add`, `sub`, `lte`, `list`, `throw` builtins
 
 Sample mal program that can be executed:
 ```
@@ -17,7 +17,6 @@ Sample mal program that can be executed:
   (if (lte n 1)
     n
     (add (fib (sub n 1)) (fib (sub n 2))))))
-
 (fib 10)
 ```
 
@@ -27,6 +26,5 @@ cat example/fib_test.mal | cargo run
 
 # output
 Function(User { params: [Symbol("n")], body: List([Symbol("if"), List([Symbol("lte"), Symbol("n"), Integer(1)]), Symbol("n"), List([Symbol("add"), List([Symbol("fib"), List([Symbol("sub"), Symbol("n"), Integer(1)])]), List([Symbol("fib"), List([Symbol("sub"), Symbol("n"), Integer(2)])])])]) })
-EOF
 Integer(55)
 ```
